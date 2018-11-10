@@ -29,6 +29,10 @@ def findContours(image_path):
     choosen_contours = [contours[i]
                         for i in index_sort[1:CHOOSEM_CONTOURS_NUM]]
 
+    # image of already detected contours
+    contours_map = np.ones((height, width))
+
+    card_contours = []
     for c in choosen_contours:
         perimeter = 0.01*cv2.arcLength(c, True)
         approx = cv2.approxPolyDP(c, perimeter, True)
@@ -37,9 +41,22 @@ def findContours(image_path):
         if len(approx) != 4:
             continue
 
+        # check if contour already exists
+        copied_map = np.copy(contours_map)
+        cv2.drawContours(copied_map, [c], -1,
+                         (0, 255, 0), thickness=cv2.FILLED)
+        if np.array_equal(copied_map, contours_map):
+            continue
+        contours_map = copied_map
+
+        card_contours.append(c)
+
         # testing and visualization
         empty = np.ones((height, width))
         cv2.drawContours(empty, [c], -1, (0, 255, 0), thickness=cv2.FILLED)
 
         cv2.imshow('image', empty)
         cv2.waitKey(0)
+
+    return card_contours
+
