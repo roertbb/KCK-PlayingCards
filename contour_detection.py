@@ -4,11 +4,9 @@ import cv2
 CHOOSEM_CONTOURS_NUM = 40
 
 
-def findContours(image_path):
-    img = cv2.imread(image_path)
-    resized_img = cv2.resize(img, (0, 0), fx=0.5, fy=0.5)
-    height, width = resized_img.shape[:2]
-    grayscale_img = cv2.cvtColor(resized_img, cv2.COLOR_BGR2GRAY)
+def find_contours(img):
+    height, width = img.shape[:2]
+    grayscale_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
     thresh = cv2.adaptiveThreshold(grayscale_img, 255, cv2.ADAPTIVE_THRESH_MEAN_C,
                                    cv2.THRESH_BINARY, 15, 2)
@@ -49,14 +47,17 @@ def findContours(image_path):
             continue
         contours_map = copied_map
 
-        card_contours.append(c)
-
-        # testing and visualization
-        empty = np.ones((height, width))
-        cv2.drawContours(empty, [c], -1, (0, 255, 0), thickness=cv2.FILLED)
-
-        cv2.imshow('image', empty)
-        cv2.waitKey(0)
+        card_contours.append((approx, c))
 
     return card_contours
 
+
+def fetch_card(img, contours):
+    h = np.float32([[0, 0], [378, 0], [378, 534], [0, 534]])
+    cards = []
+    for (approx, contour) in contours:
+        transform = cv2.getPerspectiveTransform(np.float32(approx), h)
+        warp = cv2.warpPerspective(img, transform, (378, 534))
+        cards.append(warp)
+        cv2.imshow('image', warp)
+        cv2.waitKey(0)
