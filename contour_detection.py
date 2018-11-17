@@ -2,10 +2,10 @@ import numpy as np
 import cv2
 
 CHOOSEM_CONTOURS_NUM = 40
+CARDS_ALPHA = 0.2
 
 
-def find_contours(img):
-    height, width = img.shape[:2]
+def preprocess_threshhold(img):
     grayscale_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
     thresh = cv2.adaptiveThreshold(grayscale_img, 255, cv2.ADAPTIVE_THRESH_MEAN_C,
@@ -15,6 +15,14 @@ def find_contours(img):
     kernel = np.ones((3, 3))
     for i in range(2):
         thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
+
+    return thresh
+
+
+def find_contours(img):
+    height, width = img.shape[:2]
+
+    thresh = preprocess_threshhold(img)
 
     contours_detected = cv2.Canny(thresh, 50, 250)
 
@@ -52,12 +60,18 @@ def find_contours(img):
     return card_contours
 
 
-def fetch_card(img, contours):
-    h = np.float32([[0, 0], [378, 0], [378, 534], [0, 534]])
-    cards = []
-    for (approx, contour) in contours:
-        transform = cv2.getPerspectiveTransform(np.float32(approx), h)
-        warp = cv2.warpPerspective(img, transform, (378, 534))
-        cards.append(warp)
-        cv2.imshow('image', warp)
-        cv2.waitKey(0)
+def highlight_detected(img, cards):
+
+    for (contour, match) in cards:
+        overlay = img.copy()
+        cv2.drawContours(overlay, [contour], -1, (0, 255, 0), -1)
+        cv2.addWeighted(overlay, CARDS_ALPHA, img, 1 - CARDS_ALPHA, 0, img)
+        cv2.drawContours(img, [contour], -1, (0, 255, 0), 2)
+        M = cv2.moments(contour)
+        cX = int(M["m10"] / M["m00"])
+        cY = int(M["m01"] / M["m00"])
+        cv2.putText(img, match, (cX-(len(match)*5), cY),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+
+    cv2.imshow('image', img)
+    cv2.waitKey(0)
