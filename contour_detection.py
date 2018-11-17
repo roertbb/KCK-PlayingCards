@@ -1,12 +1,15 @@
 import numpy as np
 import cv2
 
-CHOOSEM_CONTOURS_NUM = 40
+CHOOSEM_CONTOURS_NUM = 100
 CARDS_ALPHA = 0.2
 
 
 def preprocess_threshhold(img):
     grayscale_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    grayscale_img = cv2.blur(grayscale_img, (5, 5))
+    # grayscale_img = cv2.medianBlur(grayscale_img, 7)
 
     thresh = cv2.adaptiveThreshold(grayscale_img, 255, cv2.ADAPTIVE_THRESH_MEAN_C,
                                    cv2.THRESH_BINARY, 15, 2)
