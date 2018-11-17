@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 import os
 from contour_detection import find_contours, highlight_detected
-from card_recognition import fetch_card
+from card_recognition import get_cards_from_image
 
 
 def load_image(dirname):
@@ -11,7 +11,7 @@ def load_image(dirname):
         img = cv2.imread(dirname+image)
         resized_img = cv2.resize(img, (0, 0), fx=0.35, fy=0.35)
         contours = find_contours(resized_img)
-        cards = fetch_card(resized_img, contours)
+        cards = get_cards_from_image(resized_img, contours)
         highlight_detected(resized_img, cards)
 
 

@@ -31,7 +31,7 @@ def find_contours(img):
     index_sort = sorted(
         range(len(contours)), key=lambda i: cv2.contourArea(contours[i]), reverse=True)
     choosen_contours = [contours[i]
-                        for i in index_sort[1:CHOOSEM_CONTOURS_NUM]]
+                        for i in index_sort[0:CHOOSEM_CONTOURS_NUM]]
 
     contours_map = np.ones((height, width))
     card_contours = []
