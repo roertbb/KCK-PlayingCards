@@ -23,6 +23,13 @@ def get_cards_from_image(img, contours):
         # hu_moments = cv2.HuMoments(moments).flatten()
         # get best fit according to moments set
         # best_fit = calc_best_card_fit(hu_moments)
+
+        # add whtite overlay in left corner in order to get rid of border in J, Q, K
+        y_off = 45
+        x_off = 55
+        white = (np.ones((100, 100)) * 255)
+        thresh[y_off:y_off+white.shape[0], x_off:x_off+white.shape[1]] = white
+
         best_fit = predict_card(thresh)
 
         cards.append((contour, best_fit))
@@ -56,26 +63,32 @@ def load_patterns(dirname):
             if pattern_name == '0':
                 pattern_name = '10'
 
-        # store that value in dictionary
-        value_patterns[pattern_name] = thresh
+            # store that value in dictionary
+            value_patterns[pattern_name] = thresh
+
+        if (dirname == 'symbols'):
+            value_patterns[pattern_name] = pattern_img
 
     return value_patterns
 
 
-def predict_symbol(thresh, symbol_patterns, value):
+def predict_symbol(thresh, symbol_patterns, card_value):
 
     # depends of card, Region Of Interests is in another place - we look for biggest symbol on card
-    if value in ['K', 'Q', 'J']:
-        roi = thresh[50:150, 70:150]
-    elif value == 'A':
-        roi = thresh[int(HEIGHT/2)-40:int(HEIGHT/2)+40,
-                     int(WIDTH/2)-40:int(WIDTH/2)+40]
-    elif value in ['2', '3']:
+    if card_value in ['K', 'Q', 'J']:
+        roi = thresh[(HEIGHT-150):(HEIGHT-50), (WIDTH-150):(WIDTH-70)]
+        # flip image - it's upside down
+        roi = cv2.flip(roi, -1)
+    elif card_value == 'A':
+        roi = thresh[int(HEIGHT/2)-150:int(HEIGHT/2)+150,
+                     int(WIDTH/2)-125:int(WIDTH/2)+125]
+    elif card_value in ['2', '3']:
         roi = thresh[45:165, 145:245]
     else:
-        roi = thresh[45:165, 55:155]
+        roi = thresh[45:165, (WIDTH-155):(WIDTH-55)]
+        # roi = thresh[45:165, 55:155]
 
-    # remove noise, add some blur
+        # remove noise, add some blur
     roi = cv2.medianBlur(roi, 7)
     # black on white => white on black
     roi = (255 - roi)
@@ -113,7 +126,7 @@ def predict_symbol(thresh, symbol_patterns, value):
 
     best_fit = min(symbol_fit, key=symbol_fit.get)
 
-    # print(best_fit, symbol_fit)
+    # print(card_value, best_fit, symbol_fit)
     # cv2.imshow('image', sym)
     # cv2.waitKey(0)
 
@@ -133,6 +146,8 @@ def predict_value(thresh, value_patterns):
     # filter contours, which area is bigger than 2% of whole  area
     a = 0.02 * 85*70
     choosen_contours = list(filter(lambda c: cv2.contourArea(c) > a, contours))
+    choosen_contours = sorted(
+        contours, key=lambda c: cv2.contourArea(c), reverse=True)
     # when no proper contours find
     if len(choosen_contours) < 1:
         return "undefined"
