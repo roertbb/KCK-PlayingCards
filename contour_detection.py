@@ -23,6 +23,8 @@ def preprocess_threshhold(img):
 def find_contours(img):
     height, width = img.shape[:2]
     thresh = preprocess_threshhold(img)
+    # cv2.imshow('image', thresh)
+    # cv2.waitKey(0)
     # detect contours
     contours_detected = cv2.Canny(thresh, 50, 250)
     _, contours, _ = cv2.findContours(

@@ -124,8 +124,17 @@ def predict_symbol(thresh, symbol_patterns, card_value):
     for (key, value) in symbol_patterns.items():
         symbol_fit[key] = cv2.countNonZero(cv2.absdiff(sym, value))
 
-    best_fit = min(symbol_fit, key=symbol_fit.get)
+    # flip sym
+    sym = cv2.flip(sym, -1)
 
+    if card_value == 'A':
+        for (key, value) in symbol_patterns.items():
+            old_value = symbol_fit[key]
+            new_value = cv2.countNonZero(cv2.absdiff(sym, value))
+            if new_value < old_value:
+                symbol_fit[key] = new_value
+
+    best_fit = min(symbol_fit, key=symbol_fit.get)
     # print(card_value, best_fit, symbol_fit)
     # cv2.imshow('image', sym)
     # cv2.waitKey(0)
