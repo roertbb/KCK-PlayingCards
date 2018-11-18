@@ -31,29 +31,93 @@ def get_cards_from_image(img, contours):
 
 
 def predict_card(thresh):
-    value_patterns = load_value_patterns()
+    value_patterns = load_patterns('patterns')
     value = predict_value(thresh, value_patterns)
+    symbol_patterns = load_patterns('symbols')
+    symbol = predict_symbol(thresh, symbol_patterns, value)
 
-    return value
+    return '{} - {}'.format(value, symbol)
 
 
-def load_value_patterns():
+def load_patterns(dirname):
     value_patterns = {}
     # load patterns from pattern directory
-    patterns = os.listdir('patterns')
+    patterns = os.listdir(dirname)
     for pattern in patterns:
-        pattern_img = cv2.imread('./patterns/'+pattern, cv2.COLOR_BGR2GRAY)
+        pattern_img = cv2.imread(
+            './'+dirname+'/'+pattern, cv2.IMREAD_GRAYSCALE)
         thresh = cv2.adaptiveThreshold(pattern_img, 255, cv2.ADAPTIVE_THRESH_MEAN_C,
                                        cv2.THRESH_BINARY, 15, 2)
-        # parse name: loweracase => uppercase, 0 => 10 (detecting 0 - one contour bigger than 1)
-        pattern_name = pattern.split('.')[0].upper()
-        if pattern_name == '0':
-            pattern_name = '10'
+
+        pattern_name = pattern.split('.')[0]
+        if (dirname == 'patterns'):
+            # parse name: loweracase => uppercase, 0 => 10 (detecting 0 - one contour bigger than 1)
+            pattern_name = pattern_name.upper()
+            if pattern_name == '0':
+                pattern_name = '10'
 
         # store that value in dictionary
         value_patterns[pattern_name] = thresh
 
     return value_patterns
+
+
+def predict_symbol(thresh, symbol_patterns, value):
+
+    # depends of card, Region Of Interests is in another place - we look for biggest symbol on card
+    if value in ['K', 'Q', 'J']:
+        roi = thresh[50:150, 70:150]
+    elif value == 'A':
+        roi = thresh[int(HEIGHT/2)-40:int(HEIGHT/2)+40,
+                     int(WIDTH/2)-40:int(WIDTH/2)+40]
+    elif value in ['2', '3']:
+        roi = thresh[45:165, 145:245]
+    else:
+        roi = thresh[45:165, 55:155]
+
+    # remove noise, add some blur
+    roi = cv2.medianBlur(roi, 7)
+    # black on white => white on black
+    roi = (255 - roi)
+
+    # find contours
+    _, contours, _ = cv2.findContours(
+        roi, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+    # filter and sort contours
+    a = 0.05 * 85*70
+    choosen_contours = sorted(
+        contours, key=lambda c: cv2.contourArea(c), reverse=True)
+    choosen_contours = list(
+        filter(lambda c: cv2.contourArea(c) > a, choosen_contours))
+
+    # in case, when no proper contour found
+    if len(choosen_contours) < 1:
+        return 'undefined'
+
+    # fill found contour
+    cv2.drawContours(roi, [choosen_contours[0]], -
+                     1, (255, 255, 255), cv2.FILLED)
+
+    # get bounding rect
+    x, y, w, h = cv2.boundingRect(choosen_contours[0])
+    # get what's inside bounding rect
+    sym = roi[y:y+h, x:x+w]
+    # resize it to pattern size
+    sym = cv2.resize(sym, (140, 180))
+
+    # choose symbol, that fits best
+    symbol_fit = {}
+    for (key, value) in symbol_patterns.items():
+        symbol_fit[key] = cv2.countNonZero(cv2.absdiff(sym, value))
+
+    best_fit = min(symbol_fit, key=symbol_fit.get)
+
+    # print(best_fit, symbol_fit)
+    # cv2.imshow('image', sym)
+    # cv2.waitKey(0)
+
+    return best_fit
 
 
 def predict_value(thresh, value_patterns):

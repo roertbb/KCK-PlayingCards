@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 
-CHOOSEM_CONTOURS_NUM = 200
+CHOOSEM_CONTOURS_NUM = 400
 CARDS_ALPHA = 0.2
 
 
@@ -27,11 +27,13 @@ def find_contours(img):
     contours_detected = cv2.Canny(thresh, 50, 250)
     _, contours, _ = cv2.findContours(
         contours_detected, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    # sort contours descending by their area
-    index_sort = sorted(
-        range(len(contours)), key=lambda i: cv2.contourArea(contours[i]), reverse=True)
-    choosen_contours = [contours[i]
-                        for i in index_sort[0:CHOOSEM_CONTOURS_NUM]]
+    # sort contours by area
+    choosen_contours = sorted(
+        contours, key=lambda contour: cv2.contourArea(contour), reverse=True)
+    # set smallest contour's area as 1/4 of biggest one's area
+    smallest_area = cv2.contourArea(choosen_contours[0])/4
+    choosen_contours = list(
+        filter(lambda c: cv2.contourArea(c) > smallest_area, choosen_contours))
 
     contours_map = np.ones((height, width))
     card_contours = []
