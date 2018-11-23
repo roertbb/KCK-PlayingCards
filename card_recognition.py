@@ -18,13 +18,8 @@ def get_cards_from_image(img, contours):
         thresh = preprocess_threshhold(warp)
         # rotate when transformation above rotated it
         thresh = rotate_image_properly(thresh)
-        # calculate it's moments - hu moments seems to bo not so nice to work with - it seems to be next random algorithm :)
-        # moments = cv2.moments(thresh)
-        # hu_moments = cv2.HuMoments(moments).flatten()
-        # get best fit according to moments set
-        # best_fit = calc_best_card_fit(hu_moments)
 
-        # add whtite overlay in left corner in order to get rid of border in J, Q, K
+        # add whtite overlay in left corner in order to get rid  of border in J, Q, K
         y_off = 45
         x_off = 55
         white = (np.ones((100, 100)) * 255)
